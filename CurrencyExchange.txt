@@ -1,0 +1,54 @@
+using Newtonsoft.Json.Linq;
+using RestSharp;
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace CurrencyExchange
+{
+    class Code
+    {
+        public void Simple()
+        {
+            SqlConnection sqlConnection1 = new SqlConnection("Server=<ServerName>;Database=<DBname>;User Id=<Username>;Password = <Password>;");
+            sqlConnection1.Open();
+          
+		  //list all the countries from which you want to convert to USD
+            string[] countires = { "MXN", "EUR", "CAD" };
+        
+            foreach (string s in countires)
+            {
+                string s2 = s + "_USD";
+                var content = "";
+                RestClient client = new RestClient("http://free.currencyconverterapi.com/api/v5/convert?q=" + s2 + "&compact=ultra");
+                RestRequest request = new RestRequest(Method.GET);
+                IRestResponse response = client.Execute(request);
+                content = response.Content;
+
+                dynamic value = JObject.Parse(content);
+
+                float rate;
+                if (s == "MXN")
+                {
+                    rate = float.Parse(value.MXN_USD.ToString());
+
+                }
+                else if (s == "EUR")
+                {
+                    rate = float.Parse(value.EUR_USD.ToString());
+                }
+                else
+                {
+                    rate = float.Parse(value.CAD_USD.ToString());
+                }
+                string sql = @"INSERT INTO TableName(CurrencyCode,Date,Rate) VALUES('" + s + "',SYSDATETIME()," + rate + ")";
+                SqlCommand cmd = new SqlCommand(sql, sqlConnection1);
+                cmd.ExecuteNonQuery();
+            }
+
+        }
+    }
+}
